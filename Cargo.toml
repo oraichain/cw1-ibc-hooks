@@ -1,0 +1,35 @@
+[package]
+name = "cw1-ibc-hooks"
+version = "1.0.0"
+authors = ["Oraichain Labs"]
+edition = "2021"
+description = "Implementation of an proxy contract for IBC hooks"
+license = "Apache-2.0"
+repository = "https://github.com/oraichain/cw1-ibc-hooks"
+homepage = "https://orai.io"
+documentation = "https://docs.orai.io"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+test-utils = []
+
+[dependencies]
+cosmwasm-schema = { version = "1.2.1" }
+cw2 = { version = "1.1.0" }
+cosmwasm-std = { version = "1.2.1", features = ["staking", "stargate"] }
+cw-storage-plus = "1.0.1"
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+
+[dev-dependencies]
+anyhow = "1"
+assert_matches = "1"
+derivative = "2"
+base64 = "0.21.2"
+serde_json = "1.0.104"

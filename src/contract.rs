@@ -81,7 +81,6 @@ mod tests {
         instantiate(deps.as_mut(), mock_env(), info.clone(), instantiate_msg).unwrap();
 
         // try execute from binary
-        // let msgs = Binary::from_base64(encoded)
         let encoded: String = general_purpose::STANDARD_NO_PAD.encode(
             json!([{"bank": {
                 "send": {
@@ -90,6 +89,17 @@ mod tests {
                         {
                             "denom": "orai",
                             "amount": "1"
+                        }
+                    ]
+                }
+            }},
+            {"bank": {
+                "send": {
+                    "to_address": "receiver2",
+                    "amount": [
+                        {
+                            "denom": "orai",
+                            "amount": "2"
                         }
                     ]
                 }
@@ -107,12 +117,19 @@ mod tests {
             },
         )
         .unwrap();
-        print!("result: {:?}", result);
+        assert_eq!(result.messages.len(), 2);
         assert_eq!(
             result.messages[0],
             SubMsg::new(CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
                 to_address: "receiver".to_string(),
                 amount: coins(1, "orai".to_string())
+            }))
+        );
+        assert_eq!(
+            result.messages[1],
+            SubMsg::new(CosmosMsg::Bank(cosmwasm_std::BankMsg::Send {
+                to_address: "receiver2".to_string(),
+                amount: coins(2, "orai".to_string())
             }))
         )
     }

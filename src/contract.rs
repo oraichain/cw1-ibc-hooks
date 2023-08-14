@@ -34,11 +34,11 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response<Empty>, ContractError> {
     match msg {
-        ExecuteMsg::Execute { msg } => execute_execute(deps, env, info, msg),
+        ExecuteMsg::Execute { msg } => execute_msgs(deps, env, info, msg),
     }
 }
 
-pub fn execute_execute(
+pub fn execute_msgs(
     _deps: DepsMut,
     _env: Env,
     _info: MessageInfo,

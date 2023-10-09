@@ -133,4 +133,70 @@ mod tests {
             }))
         )
     }
+
+    #[test]
+    fn test_execute_counter_contract() {
+        let mut deps = mock_dependencies();
+        let caller = "caller";
+        // instantiate the contract
+        let instantiate_msg = InstantiateMsg {};
+        let info = mock_info(caller, &coins(1000, "orai".to_string()));
+        instantiate(deps.as_mut(), mock_env(), info.clone(), instantiate_msg).unwrap();
+
+        let increment_counter = Binary::from(r#"{"increment": {}}"#.as_bytes());
+        let reset_counter = Binary::from(r#"{"reset":{"count":10}}"#.as_bytes());
+
+        // let encoded_message
+        let encoded: String = general_purpose::STANDARD_NO_PAD.encode(
+            json!([
+            {
+                "wasm": {
+                    "execute": {
+                        "contract_addr": "counter_contract",
+                        "msg": increment_counter,
+                        "funds": []
+                    }
+                }
+            },
+            {
+                "wasm": {
+                    "execute": {
+                        "contract_addr": "counter_contract",
+                        "msg": reset_counter,
+                        "funds": []
+                    }
+                }
+            }])
+            .to_string()
+            .as_bytes(),
+        );
+        let encoded_binary = Binary::from_base64(&encoded).unwrap();
+        let result = execute(
+            deps.as_mut(),
+            mock_env(),
+            info,
+            ExecuteMsg::Execute {
+                msg: encoded_binary,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(result.messages.len(), 2);
+        assert_eq!(
+            result.messages[0],
+            SubMsg::new(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
+                contract_addr: "counter_contract".to_string(),
+                msg: increment_counter,
+                funds: [].into() 
+            }))
+        );
+        assert_eq!(
+            result.messages[1],
+            SubMsg::new(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
+                contract_addr: "counter_contract".to_string(),
+                msg: reset_counter,
+                funds: [].into() 
+            }))
+        )
+    }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "@oraichain/cw1hook-contracts-sdk",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
+  "license": "MIT"
+}

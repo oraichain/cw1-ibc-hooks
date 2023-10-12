@@ -1,5 +1,9 @@
-import { CWSimulateApp, GenericError, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
-import * as oraidexArtifacts from '@oraichain/oraidex-contracts-build';
+import {
+  CWSimulateApp,
+  GenericError,
+  SimulateCosmWasmClient,
+} from "@oraichain/cw-simulate";
+import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import {
   Cw1IbcHooksClient,
   Cw1IbcHooksTypes,
@@ -12,7 +16,7 @@ import {
   SigningCosmWasmClient,
 } from "@oraichain/oraidex-contracts-sdk";
 import { coins } from "@cosmjs/amino";
-import { toBinary } from '@cosmjs/cosmwasm-stargate';
+import { toBinary } from "@cosmjs/cosmwasm-stargate";
 
 const toDecimals = (num: number, decimals: number = 6): string => {
   return (num * 10 ** decimals).toFixed();
@@ -66,7 +70,7 @@ describe("cw1-ibc-hooks", () => {
     bech32Prefix: "orai",
     metering: process.env.METERING === "true",
   });
-  
+
   const cosmosChain = new CWSimulateApp({
     chainId: "cosmoshub-4",
     bech32Prefix: "cosmos",
@@ -83,7 +87,7 @@ describe("cw1-ibc-hooks", () => {
   const initialBalances = toDecimals(5000, 6);
 
   beforeEach(async () => {
-    [senderAddress, aliceAddress, bobAddress].forEach((address) =>
+    [senderAddress, aliceAddress].forEach((address) =>
       oraiClient.app.bank.setBalance(address, [
         { denom: "orai", amount: initialBalances },
       ])
@@ -97,14 +101,14 @@ describe("cw1-ibc-hooks", () => {
         (res) => res.contractAddress
       )
     );
-    console.log({ cw1: cw1Contract.contractAddress});
+    console.log({ cw1: cw1Contract.contractAddress });
     usdtToken = await deployToken(oraiClient, {
       symbol: "USDT",
       name: "USDT token",
     });
 
     cosmosChain.bank.setBalance(cosmosAddress, coins(initialBalances, "atom"));
-    
+
     // relay message between Cosmos Hub and Oraichain
     cosmosChain.ibc.relay(
       "channel-0",
@@ -133,7 +137,7 @@ describe("cw1-ibc-hooks", () => {
   });
 
   it("test_transfer_token", async () => {
-    let aliceBalance = await usdtToken.balance({address: aliceAddress});
+    let aliceBalance = await usdtToken.balance({ address: aliceAddress });
     expect(aliceBalance.balance).toBe("0");
 
     let atomWallet = cosmosChain.bank.getBalance(cosmosAddress);
@@ -164,50 +168,105 @@ describe("cw1-ibc-hooks", () => {
     atomWallet = cosmosChain.bank.getBalance(cosmosAddress);
     expect(atomWallet).toEqual(coins("4999000000", "atom"));
 
-    aliceBalance = await usdtToken.balance({address: aliceAddress});
+    aliceBalance = await usdtToken.balance({ address: aliceAddress });
     expect(aliceBalance.balance).toBe("1000000");
   });
 
-  it("test_transfer_token_through_hook", async () => {
-    let aliceBalance = await usdtToken.balance({address: aliceAddress});
-    expect(aliceBalance.balance).toBe("0");
+  it("test_transfer_native_token", async () => {
+    let senderWallet = oraiClient.app.bank.getBalance(senderAddress);
+    expect(senderWallet).toEqual(coins(initialBalances, "orai"));
 
-    let atomWallet = cosmosChain.bank.getBalance(cosmosAddress);
-    expect(atomWallet).toEqual(coins(initialBalances, "atom"));
+    let bobWallet = oraiClient.app.bank.getBalance(bobAddress);
+    expect(bobWallet).toEqual([]);
 
-    let transferMsg = toBinary({
-      transfer: {
-        amount: "1000000",
-        recipient: aliceAddress,
-      },
-    } as OraiswapTokenTypes.ExecuteMsg)
-
-    let hookMsg = toBinary({
-      execute: {
-        msg: transferMsg,
-      },
-    } as Cw1IbcHooksTypes.ExecuteMsg)
-    // mint ibc/orai on cosmos hub and burn orai on oraichain
-    await cosmosChain.ibc.sendTransfer({
-      channelId: "channel-0",
-      receiver: senderAddress,
-      token: { amount: "1000000", denom: "atom" },
-      sender: cosmosAddress,
-      timeout: {
-        timestamp: "",
-      },
-      memo: JSON.stringify({
-        wasm: {
-          contract: cw1Contract.contractAddress,
-          msg: hookMsg,
+    const transferAmount = "123456";
+    let msg = toBinary([
+      {
+        bank: {
+          send: {
+            to_address: bobAddress,
+            amount: [
+              {
+                denom: "orai",
+                amount: transferAmount,
+              },
+            ],
+          },
         },
-      }),
+      },
+    ]);
+    cw1Contract.sender = senderAddress;
+    await cw1Contract.execute(
+      { msg },
+      "auto",
+      "",
+      coins(transferAmount, "orai")
+    );
+
+    bobWallet = oraiClient.app.bank.getBalance(bobAddress);
+    expect(bobWallet).toEqual(coins(transferAmount, "orai"));
+
+    senderWallet = oraiClient.app.bank.getBalance(senderAddress);
+    expect(senderWallet).toEqual(
+      coins(
+        (Number(initialBalances) - Number(transferAmount)).toString(),
+        "orai"
+      )
+    );
+  });
+
+  it("test_transfer_cw20_token", async () => {
+    let senderWallet = await usdtToken.balance({ address: senderAddress });
+    expect(senderWallet.balance).toBe("1000000000000");
+
+    let bobWallet = await usdtToken.balance({ address: bobAddress });
+    expect(bobWallet.balance).toBe("0");
+
+    const transferAmount = "123456";
+
+    // 1. transfer token to cw1 hook contract
+    usdtToken.sender = senderAddress;
+    await usdtToken.transfer({
+      amount: transferAmount,
+      recipient: cw1Contract.contractAddress,
     });
 
-    atomWallet = cosmosChain.bank.getBalance(cosmosAddress);
-    expect(atomWallet).toEqual(coins("4999000000", "atom"));
+    let cw1Balance = await usdtToken.balance({
+      address: cw1Contract.contractAddress,
+    });
+    expect(cw1Balance.balance).toBe(transferAmount);
 
-    aliceBalance = await usdtToken.balance({address: aliceAddress});
-    expect(aliceBalance.balance).toBe("1000000");
-  }); 
+    // 2. prepare transfer msg
+    let transferMsg = toBinary({
+      transfer: {
+        amount: transferAmount,
+        recipient: bobAddress,
+      },
+    } as OraiswapTokenTypes.ExecuteMsg);
+
+    let msg = toBinary([
+      {
+        wasm: {
+          execute: {
+            contract_addr: usdtToken.contractAddress,
+            msg: transferMsg,
+            funds: [],
+          },
+        },
+      },
+    ]);
+    cw1Contract.sender = senderAddress;
+    await cw1Contract.execute({ msg });
+
+    cw1Balance = await usdtToken.balance({
+      address: cw1Contract.contractAddress,
+    });
+    expect(cw1Balance.balance).toBe("0");
+
+    bobWallet = await usdtToken.balance({ address: bobAddress });
+    expect(bobWallet.balance).toBe(transferAmount);
+
+    senderWallet = await usdtToken.balance({ address: senderAddress });
+    expect(senderWallet.balance).toBe((Number(1000000000000) - Number(transferAmount)).toString());
+  });
 });

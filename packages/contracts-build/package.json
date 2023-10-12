@@ -1,0 +1,13 @@
+{
+  "name": "@oraichain/cw1hook-contracts-build",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "files": [
+    "build/",
+    "data/"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@oraichain/cw1hook-contracts-sdk": "^1.0.0"
+  }
+}

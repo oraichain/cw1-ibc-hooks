@@ -16,3 +16,23 @@ node_modules/
 # IDEs
 *.iml
 .idea
+
+# TypeScript v1 declaration files
+typings/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+.npmrc
+
+# Optional eslint cache
+.eslintcache
+
+# Ignore environment variables file
+.env
+build
+.DS_Store
+
+dist

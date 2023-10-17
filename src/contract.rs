@@ -34,7 +34,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response<Empty>, ContractError> {
     match msg {
-        ExecuteMsg::Execute { msg } => execute_msgs(deps, env, info, msg),
+        ExecuteMsg::ExecuteMsgs(msg) => execute_msgs(deps, env, info, msg),
     }
 }
 
@@ -112,9 +112,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info,
-            ExecuteMsg::Execute {
-                msg: encoded_binary,
-            },
+            ExecuteMsg::ExecuteMsgs(encoded_binary),
         )
         .unwrap();
         assert_eq!(result.messages.len(), 2);
@@ -175,9 +173,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info,
-            ExecuteMsg::Execute {
-                msg: encoded_binary,
-            },
+            ExecuteMsg::ExecuteMsgs(encoded_binary),
         )
         .unwrap();
 
@@ -187,7 +183,7 @@ mod tests {
             SubMsg::new(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                 contract_addr: "counter_contract".to_string(),
                 msg: increment_counter,
-                funds: [].into() 
+                funds: [].into()
             }))
         );
         assert_eq!(
@@ -195,7 +191,7 @@ mod tests {
             SubMsg::new(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                 contract_addr: "counter_contract".to_string(),
                 msg: reset_counter,
-                funds: [].into() 
+                funds: [].into()
             }))
         )
     }

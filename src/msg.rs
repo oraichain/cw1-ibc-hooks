@@ -9,7 +9,7 @@ pub enum ExecuteMsg {
     /// Execute requests the contract to re-dispatch all these messages with the
     /// contract's address as sender. Every implementation has it's own logic to
     /// determine in
-    Execute { msg: Binary },
+    ExecuteMsgs(Binary),
 }
 
 #[cw_serde]

@@ -6,8 +6,8 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {} from "./types.js";
-import {InstantiateMsg, ExecuteMsg, Binary, QueryMsg} from "./Cw1IbcHooks.types.js";
+import {} from "./types";
+import {InstantiateMsg, ExecuteMsg, Binary, QueryMsg} from "./Cw1IbcHooks.types";
 export interface Cw1IbcHooksReadOnlyInterface {
   contractAddress: string;
 }
@@ -24,11 +24,7 @@ export class Cw1IbcHooksQueryClient implements Cw1IbcHooksReadOnlyInterface {
 export interface Cw1IbcHooksInterface extends Cw1IbcHooksReadOnlyInterface {
   contractAddress: string;
   sender: string;
-  execute: ({
-    msg
-  }: {
-    msg: Binary;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  executeMsgs: (_fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class Cw1IbcHooksClient extends Cw1IbcHooksQueryClient implements Cw1IbcHooksInterface {
   client: SigningCosmWasmClient;
@@ -40,18 +36,12 @@ export class Cw1IbcHooksClient extends Cw1IbcHooksQueryClient implements Cw1IbcH
     this.client = client;
     this.sender = sender;
     this.contractAddress = contractAddress;
-    this.execute = this.execute.bind(this);
+    this.executeMsgs = this.executeMsgs.bind(this);
   }
 
-  execute = async ({
-    msg
-  }: {
-    msg: Binary;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+  executeMsgs = async (_fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      execute: {
-        msg
-      }
+      execute_msgs: {}
     }, _fee, _memo, _funds);
   };
 }

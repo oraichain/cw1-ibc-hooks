@@ -14,6 +14,7 @@ import {
 import { coins } from "@cosmjs/amino";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
 import * as crypto from "crypto";
+import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
 
 const toDecimals = (num: number, decimals: number = 6): string => {
   return (num * 10 ** decimals).toFixed();
@@ -141,6 +142,7 @@ describe("cw1-ibc-hooks", () => {
         wasm.execute.contract_addr,
         wasm.execute.msg
       ); // WASM IBC Hooks
+      console.dir(result, { depth: null });
       if (result.err) {
         console.log("ibc wasm hook err result: ", result);
       }
@@ -271,5 +273,52 @@ describe("cw1-ibc-hooks", () => {
           coin.denom === cosmosDenomTrace && coin.amount === transferAmount
       )
     ).toBe(true);
+  });
+
+  // test using stargate msg instead of existing msg
+  it("test_transfer_native_token_stargate", async () => {
+    // execute. mint ibc/orai on cosmos hub and burn orai on oraichain
+    await cosmosChain.ibc.sendTransfer({
+      channelId: "channel-0",
+      receiver: cw1Contract.contractAddress,
+      token: { amount: transferAmount, denom: testCosmosDenom },
+      sender: cosmosAddress,
+      timeout: {
+        timestamp: "",
+      },
+      memo: JSON.stringify({
+        wasm: {
+          execute: {
+            contract_addr: cw1Contract.contractAddress,
+            msg: {
+              execute_msgs: toBinary([
+                {
+                  stargate: {
+                    type_url: "/cosmos.bank.v1beta1.MsgSend",
+                    value: toBinary(
+                      MsgSend.encode({
+                        fromAddress: cw1Contract.contractAddress,
+                        toAddress: aliceAddress,
+                        amount: [
+                          {
+                            denom: denomTrace(port, channel, testCosmosDenom),
+                            amount: transferAmount,
+                          },
+                        ],
+                      }).finish()
+                    ),
+                  },
+                },
+              ]),
+            },
+          },
+        },
+      }),
+    });
+
+    // assert
+    const atomWallet = cosmosChain.bank.getBalance(cosmosAddress);
+    expect(atomWallet).toEqual(coins("4999000000", testCosmosDenom));
+    // since stargate is not fully implemented in cw-simulate, as long as the ibc transfer doesnt fail then we're good to go
   });
 });
